@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from decimal import Decimal
 
 import discord
@@ -19,7 +20,7 @@ class IceDragonChallenge(commands.Cog):
         self.weekly_defeats = 0
         self.current_parties = {}
         self.unlocked = True
-        self.last_reset = datetime.utcnow()
+        self.last_reset = datetime.now(timezone.utc)
 
         # Dragon evolution stages
         self.DRAGON_STAGES = {
@@ -127,7 +128,7 @@ class IceDragonChallenge(commands.Cog):
                 # Initialize if not exists
                 await conn.execute(
                     'INSERT INTO dragon_progress (id, current_level, weekly_defeats, last_reset) VALUES (1, 1, 0, $1)',
-                    datetime.utcnow()
+                    datetime.now(timezone.utc)
                 )
                 dragon_level = 1
             else:
@@ -171,7 +172,7 @@ class IceDragonChallenge(commands.Cog):
             if not result:
                 return False
 
-            now = datetime.utcnow()
+            now = datetime.now(timezone.utc)
             last_reset = result['last_reset']
 
             if now - last_reset >= timedelta(days=7):
@@ -191,7 +192,7 @@ class IceDragonChallenge(commands.Cog):
                 ''')
 
                 # Send reset message
-                reset_channel = self.bot.get_channel(1161393340575666359)
+                reset_channel = self.bot.get_channel(1199287510019362860)
                 if reset_channel:
                     await reset_channel.send("❄️ **Weekly reset!** The Ice Dragon has been reset to level 1.")
                 return True
@@ -228,7 +229,7 @@ class IceDragonChallenge(commands.Cog):
             )
             if not result:
                 weekly_defeats = 0
-                last_reset = datetime.utcnow()
+                last_reset = datetime.now(timezone.utc)
             else:
                 weekly_defeats = result['weekly_defeats']
                 last_reset = result['last_reset']
@@ -726,7 +727,7 @@ class IceDragonChallenge(commands.Cog):
                         Luck = min(Luck, 100.0)
 
                     # Get base health and stat HP
-                    base_health = 250.0
+                    base_health = 200.0
                     health = float(result['health']) + base_health
                     stathp = float(result['stathp']) * 50.0
 
@@ -745,7 +746,7 @@ class IceDragonChallenge(commands.Cog):
                     # Get raid stats
                     dmg, deff = await self.bot.get_raidstats(member, conn=conn)
 
-                    total_health = health + level * 5.0 + stathp + float(amulet_bonus)
+                    total_health = health + level * 15.0 + stathp + float(amulet_bonus)
 
 
 
@@ -1256,12 +1257,12 @@ class IceDragonChallenge(commands.Cog):
         await asyncio.sleep(2)
 
         try:
-            start_time = datetime.utcnow()
+            start_time = datetime.now(timezone.utc)
             action_number = 2
             battle_ongoing = True
             current_round = 1
 
-            while battle_ongoing and datetime.utcnow() < start_time + timedelta(minutes=15):
+            while battle_ongoing and datetime.now(timezone.utc) < start_time + timedelta(minutes=15):
                 try:
                     #await ctx.send(f"--- Starting Round {current_round} ---")
 
@@ -1505,7 +1506,7 @@ class IceDragonChallenge(commands.Cog):
                 await conn.execute('''
                     INSERT INTO dragon_progress (id, current_level, weekly_defeats, last_reset) 
                     VALUES (1, 1, 0, $1)
-                ''', datetime.utcnow())
+                ''', datetime.now(timezone.utc))
 
                 # Reset weekly_defeats in dragon_contributions
                 await conn.execute('''
@@ -1561,6 +1562,26 @@ class IceDragonChallenge(commands.Cog):
                 SELECT * FROM rankings WHERE user_id = $1
             ''', ctx.author.id)
 
+
+            reset_data = await conn.fetchrow('SELECT last_reset FROM dragon_progress WHERE id = 1')
+            footer_text = "Reset time unavailable"
+            if reset_data:
+                last_reset = reset_data['last_reset']
+                next_reset = last_reset + timedelta(days=7)
+                now = datetime.now(timezone.utc)
+                remaining = next_reset - now
+                
+                # Handle negative time (reset overdue)
+                if remaining < timedelta(0):
+                    remaining = timedelta(0)
+                
+                days = remaining.days
+                seconds = remaining.seconds
+                hours = seconds // 3600
+                minutes = (seconds % 3600) // 60
+                footer_text = f"Time until next reset: {days}d {hours}h {minutes}m"
+
+
             embed = discord.Embed(title="🐉 Weekly Dragon Defeats Leaderboard", color=discord.Color.green())
             # Format top 10
             leaderboard_text = ""
@@ -1574,6 +1595,7 @@ class IceDragonChallenge(commands.Cog):
                     value=f"#{user_rank['rank']} - {user_rank['weekly_defeats']} defeats",
                     inline=False
                 )
+            embed.set_footer(text=footer_text)
             await ctx.send(embed=embed)
 
     async def handle_victory(self, ctx, party_members, dragon, old_level, weekly_defeats):

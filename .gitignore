@@ -1,13 +1,42 @@
-application.yml
-commands.txt
-/config.toml
-/config.json
-__pycache__
-*.pyc
-nohup.out
-.vs
-.vscode
-cogs/__pycache__
-venv
-.mypy_cache
-application.yml
+
+patreon_config.json
+
+# Local secrets and generated files
+config.toml
+config.toml.*
+patreon_config.json
+config.json
+*.env
+.DS_Store
+__pycache__/
+*.py[cod]
+
+# Secrets and local configuration
+acc.json
+config.toml
+config.toml.*
+patreon_config.json
+config.json
+*.env
+
+# Runtime/generated files
+*.log
+maze_images/
+auto_splice_saves.json
+easter_state_summary.json
+macro_detection_backup.json
+captcha.png
+result.png
+p1_*.png
+p2_*.png
+
+# Editor and backup files
+.idea/
+.vscode/
+.DS_Store
+__pycache__/
+*.py[cod]
+*.bak
+*.bak.*
+*.backup
+*.save
